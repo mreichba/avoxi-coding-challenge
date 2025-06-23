@@ -3,12 +3,16 @@ package geoip
 import (
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/oschwald/geoip2-golang"
 )
 
 // AI helped set up the global pointer for the GeoIP database and to initially get the files i needed to download
-var db *geoip2.Reader
+var (
+	db   *geoip2.Reader
+	once sync.Once
+)
 
 // for next 2 code blocks, most of this was direct from documentation but AI predictive text
 // helped with edge case i wouldnt have otherwise had and made createing the functions way easier
@@ -16,7 +20,9 @@ var db *geoip2.Reader
 // initiate GeoIP database
 func InitDB(path string) error {
 	var err error
-	db, err = geoip2.Open(path)
+	once.Do(func() {
+		db, err = geoip2.Open(path)
+	})
 	if err != nil {
 		return fmt.Errorf("failed to open GeoIP database: %w", err)
 	}
@@ -25,6 +31,10 @@ func InitDB(path string) error {
 
 // lookup country by IP Address
 func GetCountryByIP(ipStr string) (string, error) {
+	if db == nil {
+		return "", fmt.Errorf("GeoIP database is not initialized")
+	}
+
 	ip := net.ParseIP(ipStr)
 	if ip == nil {
 		return "", fmt.Errorf("invalid IP address: %s", ipStr)
@@ -44,8 +54,9 @@ func GetCountryByIP(ipStr string) (string, error) {
 
 // this was recommended by ai as i had place a defer db.Close() in the wrong location which was in initDB instead of in main.go
 // close database
-func CloseDB() {
+func CloseDB() error {
 	if db != nil {
-		db.Close()
+		return db.Close()
 	}
+	return nil
 }
