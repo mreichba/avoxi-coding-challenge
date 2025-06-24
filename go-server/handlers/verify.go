@@ -2,27 +2,16 @@ package handlers
 
 import (
 	"avoxi-geoip/geoip"
+	models "avoxi-geoip/models/verify"
 	"encoding/json"
 	"log"
 	"net/http"
 )
 
-// VerifyRequest represents the incoming IP and allowed country list.
-type VerifyRequest struct {
-	IP               string   `json:"ip"`
-	AllowedCountries []string `json:"countries"`
-}
-
-// VerifyResponse represents the API's response about IP allowance.
-type VerifyResponse struct {
-	Allowed bool   `json:"allowed"`
-	Message string `json:"message"`
-}
-
 func VerifyIP(w http.ResponseWriter, r *http.Request) {
 
 	//Decode the request body into VerifyRequest struck
-	var req VerifyRequest
+	var req models.VerifyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Printf("Failed to decode request: %v", err)
 		http.Error(w, "Invalid request body", http.StatusBadRequest)
@@ -41,7 +30,7 @@ func VerifyIP(w http.ResponseWriter, r *http.Request) {
 	allowed := isCountryAllowed(country, req.AllowedCountries)
 
 	// Prepare response
-	resp := VerifyResponse{
+	resp := models.VerifyResponse{
 		Allowed: allowed,
 		Message: buildResponseMessage(country, allowed),
 	}
