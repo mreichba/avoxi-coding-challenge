@@ -7,37 +7,33 @@ import (
 	"net/http"
 )
 
-// I had countries labeled wrong and AI helped me figure that out due to time limits
-// incoming request struct
+// VerifyRequest represents the incoming IP and allowed country list.
 type VerifyRequest struct {
 	IP               string   `json:"ip"`
 	AllowedCountries []string `json:"countries"`
 }
 
-// outgoing response struct
+// VerifyResponse represents the API's response about IP allowance.
 type VerifyResponse struct {
 	Allowed bool   `json:"allowed"`
 	Message string `json:"message"`
 }
 
 func VerifyIP(w http.ResponseWriter, r *http.Request) {
-	//Lock this call down to POST
-	if r.Method != http.MethodPost {
-		http.Error(w, "Method not allowed", http.StatusBadRequest)
-		return
-	}
 
 	//Decode the request body into VerifyRequest struck
 	var req VerifyRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "Invalid request body: "+err.Error(), http.StatusBadRequest)
+		log.Printf("Failed to decode request: %v", err)
+		http.Error(w, "Invalid request body", http.StatusBadRequest)
 		return
 	}
 
 	// Get the country from provided IP
 	country, err := geoip.GetCountryByIP(req.IP)
 	if err != nil {
-		http.Error(w, "IP lookup failed: "+err.Error(), http.StatusInternalServerError)
+		log.Printf("IP lookup failed: %v", err)
+		http.Error(w, "IP lookup failed", http.StatusInternalServerError)
 		return
 	}
 
@@ -55,7 +51,10 @@ func VerifyIP(w http.ResponseWriter, r *http.Request) {
 
 	// Set CORS headers
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(resp)
+	if err := json.NewEncoder(w).Encode(resp); err != nil {
+		log.Printf("Failed to encode response: %v", err)
+		http.Error(w, "Internal server error", http.StatusInternalServerError)
+	}
 }
 
 func isCountryAllowed(country string, allowedCountries []string) bool {

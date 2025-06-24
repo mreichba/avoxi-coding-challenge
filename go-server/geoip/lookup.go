@@ -8,7 +8,8 @@ import (
 	"github.com/oschwald/geoip2-golang"
 )
 
-// AI helped set up the global pointer for the GeoIP database and to initially get the files i needed to download
+// db is the singleton instance of the GeoIP database reader.
+// once ensures the database is only initialized once (thread-safe).
 var (
 	db   *geoip2.Reader
 	once sync.Once
@@ -52,8 +53,7 @@ func GetCountryByIP(ipStr string) (string, error) {
 	return record.Country.IsoCode, nil
 }
 
-// this was recommended by ai as i had place a defer db.Close() in the wrong location which was in initDB instead of in main.go
-// close database
+// CloseDB closes the GeoIP database. Should be called at shutdown from main.
 func CloseDB() error {
 	if db != nil {
 		return db.Close()
