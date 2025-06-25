@@ -10,6 +10,8 @@ import (
 
 // db is the singleton instance of the GeoIP database reader.
 // once ensures the database is only initialized once (thread-safe).
+// I opted for a global db instance for ease in an app this size but would
+// pivot to dependency injection for larger apps.
 var (
 	db   *geoip2.Reader
 	once sync.Once
